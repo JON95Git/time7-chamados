@@ -4,6 +4,21 @@ import Adafruit_DHT
 import mysql.connector
 import query
 
+# Configuracao do display
+from smartGPIO import GPIO
+from lib_tft144 import TFT144
+GPIO.setwarnings(False)
+GPIO.setmode(GPIO.BCM)
+RST =  8    # RST may use direct +3V strapping, and then be listed as 0 here. (Soft Reset used instead)
+CE =   1    # RPI GPIO: 0 or 1 for CE0 / CE1 number (NOT the pin#)
+DC =  25    # Labeled on board as "A0"   Command/Data select
+LED =  2    # LED may also be strapped direct to +3V, (and then LED=0 here). LED sinks 10-14 mA @ 3V
+import spidev
+spi = spidev.SpiDev()
+
+TFT = TFT144(GPIO, spidev.SpiDev(), CE, DC, RST, LED, isRedBoard=False)
+TFT.clear_display(TFT.RED)
+
 # Valor do conector para uma query com retorno nulo
 QUERY_NULL = '[]'
 
@@ -14,7 +29,8 @@ MAX_TEMP = 30
 MAX_HUM = 100
 
 # Dados de conexao com banco de dados
-db_host = "projeto.sytes.net"
+# db_host = "projeto.sytes.net"
+db_host = "10.5.5.1"
 db_user = "root"
 db_passwd = "Projeto@2020!!"
 db_database = "sistema"
@@ -70,12 +86,16 @@ else:
     for x in query.query_result:
         print(x)
 
+TFT.put_string("Temperatura: ", 15, 15, TFT.BLACK, TFT.RED, 5)  # std font 3 (default)
+
 # Loop infinito
 # Caso temperatura e humidade excedam o limite, abre chamado
 while True:
     dia = time.strftime("%H:%M")
     humidity, temperature = Adafruit_DHT.read_retry(DHT_SENSOR, DHT_PIN)
     print("Temp={0:0.1f}°C  Humidade ={1:0.1f}%".format(temperature, humidity))
+    TFT.put_string("{0:0.1f}°C ".format(temperature), 10, 45, TFT.BLACK, TFT.RED, 8)     # doubled font 4
+    # TFT.put_string("{1:0.1f}%".format(humidity), 5,28,TFT.BLACK, TFT.RED, 8)     # doubled font 4
 
     if humidity > MAX_HUM:
         # Obtem a data atual e calcula a data de 5 dias atras
